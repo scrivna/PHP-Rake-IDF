@@ -232,17 +232,53 @@ class RakeIDF {
 		return $keyword_candidates;
 	}
 	
+	/* method for generating idf.json file
+	 pass an array of strings to train on
+	 
+	 	$r = new RakeIDF;
+		$r->create_idf([
+			'hello world',
+			'world at one',
+			'be one with yourself',
+			'welcome me to the world'
+		]);
+	*/
 	
-	function test_normalise(){
-		header('Content-Type: text/html; charset=utf-8');
-		echo '<html><head><meta http-equiv="Content-type" content="text/html; charset=utf-8" /></head><body style"font-family:Courier">';
-		//pr($pages);
+	function create_idf($strings){
+			
+		// split on word boundaries, then count words
+		$idf = array();
+		foreach ($strings as $str){
+			$str = $this->normalize_special_characters(strtolower($str));
+			$words = preg_split('/[\s\*\.\!\?,;\:\(\)\t"\|\[\]]/', $str);
+			array_walk($words,function(&$v){ $v = trim($v,"'-"); });
+			$words = array_filter($words);
+			$counts = array_count_values($words);
+			$words = array_keys($counts);
+			
+			foreach ($words as $word){
+				@$idf[$word]++;
+			}
+		}
 		
-		$rake = new Rake;
-		$str = "(hello–world) this isn't a question?  £$%";
-		echo $str.'<br />';
-		echo $rake->normalize_special_characters($str);
-		exit;
+		foreach ($idf as $word => $occurrences){
+			//$idf[$word] = round(log(count($files) / $occurrences),6);
+			$idf[$word] = round(log(((count($strings)-$occurrences)+.5) / ($occurrences+.5)),6); // normalised idf
+		}
+		
+		// scale values to fit in a range
+		$min = min($idf);
+		$max = max($idf);
+		$new_min = max(0, $min);
+		$new_max = $max;
+		foreach ($idf as $i => $v){
+			$idf[$i] = ((($new_max - $new_min) * ($v - $min)) / ($max - $min)) + $new_min;
+		}
+		
+		asort($idf);
+		
+		$idf = array_slice($idf, 0, 25000);
+		file_put_contents('idf.json', json_encode($idf));
 	}
 }
 ?>
