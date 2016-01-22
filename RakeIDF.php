@@ -278,7 +278,7 @@ class RakeIDF {
 		asort($idf);
 		
 		$idf = array_slice($idf, 0, 25000);
-		file_put_contents('idf.json', json_encode($idf));
+		file_put_contents(dirname(__FILE__).'/idf.json', json_encode($idf));
 	}
 }
 ?>
